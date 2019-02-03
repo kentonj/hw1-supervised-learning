@@ -40,7 +40,8 @@ def generate_knn():
 
 def generate_gradient_boosting_trees():
     gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.15, n_estimators=200, random_state=RANDOM_STATE)
-
+    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree', framework='sklearn')
+    
 def generate_neural_network():
     nn_classifier = Sequential([
     Dense(32, input_shape=()),
@@ -105,8 +106,10 @@ def main():
     [train_df, test_df] = clean_dataset([dirty_train_df, dirty_test_df], na_action=-1)
 
     #prep the datasets 
-    [train_dataset, test_dataset], label_encoder = prep_data([train_df, test_df], scale_data=True, shuffle_data=True)
+    [train_dataset, test_dataset], label_encoder = prep_data({'train':train_df, 'test':test_df}, scale_data=True, shuffle_data=True, balance_method=2000)
     print('{} maps to {}'.format(label_encoder.classes_, label_encoder.transform(label_encoder.classes_)))
+    print('size of training dataset:', train_dataset.data.shape)
+    print('size of testing dataset:', test_dataset.data.shape)
 
     
     if LOAD_PRETRAINED_MODELS:

@@ -3,12 +3,13 @@ import datetime
 import pickle
 import os
 import glob
+import numpy as np
 
 from sklearn import preprocessing
 from sklearn.model_selection import train_test_split
 # from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
-from sklearn.utils import shuffle
+from sklearn.utils import shuffle, resample
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import f1_score
@@ -80,27 +81,55 @@ def clean_dataset(dirty_df_list, na_action='mean'):
     
     return clean_df_list
 
+def balance(df, class_col='class', balance_method='downsample'):
 
-def prep_data(training_and_test_df_list, scale_data=True, shuffle_data=True):
+    if type(balance_method) == int:
+        n_samples = balance_method
+    elif type(balance_method) == str:
+        if balance_method == 'downsample':
+            n_samples = min(df[class_col].value_counts())
+        if balance_method == 'upsample':
+            n_samples = max(df[class_col].value_counts())
+        else:
+            raise ValueError('no viable sampling method provided, please enter (upsample, downsample, or an integer)')
+
+    df_list = []
+    for label in np.unique(df[class_col]):
+        subset_df = df[df[class_col]==label]
+        resampled_subset_df = resample(subset_df, 
+                                        replace=(subset_df.shape[0]<n_samples),    # sample with replacement if less than number of samples, otherwise without replacement
+                                        n_samples=n_samples)    # to match minority class
+        df_list.append(resampled_subset_df)
+    balanced_df = pd.concat(df_list)
+
+    return balanced_df
+
+
+def prep_data(df_dict, scale_data=False, shuffle_data=True, balance_method='downsample'):
     '''
     always pass training set as first df in list
     '''
     #encode dataset to binary variables
+    encoder = preprocessing.LabelEncoder()
+    encoder.fit(df_dict['train']['class'])
+
     prepped_df_list = []
-    for df_index in range(len(list(training_and_test_df_list))):
-        df = training_and_test_df_list[df_index]
-        if df_index == 0:
-            encoder = preprocessing.LabelEncoder() #outside of function scope so that it can be referenced again
-            encoder.fit(df['class'])
+    
+    for df_key, df in df_dict.items():
 
         #encode training dataset
         df['class'] = encoder.transform(df['class'])
+
+        if balance_method:
+            if df_key=='train': #only balance training data
+                df = balance(df, class_col='class', balance_method=balance_method)
 
         dataset_df = Dataset(df, 'class')
         if scale_data:
             dataset_df.data = preprocessing.scale(dataset_df.data)
         if shuffle_data:
             dataset_df.data, dataset_df.target = shuffle(dataset_df.data, dataset_df.target)
+        
         prepped_df_list.append(dataset_df)
 
     return prepped_df_list, encoder
