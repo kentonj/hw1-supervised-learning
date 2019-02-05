@@ -1,6 +1,9 @@
-
+import platform
 import matplotlib as mpl
-mpl.use('TkAgg')
+if platform.mac_ver()[0] != '':
+    print('mac os version detected:', platform.mac_ver()[0], ' - switching matplotlib backend to TkAgg')
+    mpl.use('TkAgg')
+
 import matplotlib.pyplot as plt
 from sklearn.model_selection import learning_curve
 import numpy as np
@@ -8,7 +11,7 @@ import os
 import itertools
 
 
-def plot_confusion_matrix(cm, algo, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues, figure_action='show', figure_path='figures/cm'):
+def plot_confusion_matrix(cm, algo, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues, figure_action='show', figure_path='figures/cm', file_name=None):
     '''
     heavily adapted from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
     '''
@@ -43,12 +46,16 @@ def plot_confusion_matrix(cm, algo, classes, normalize=False, title='Confusion m
     elif figure_action == 'save':
         if not os.path.exists(figure_path):
             os.makedirs(figure_path)
-        plt.savefig(figure_path+'/'+str(algo.model_type)+'_'+str(algo.id)+'.png')
+        if file_name:
+            plt.savefig(figure_path+'/'+file_name+'.png')
+        else:
+            plt.savefig(figure_path+'/'+str(algo.model_type)+'_'+str(algo.id)+'.png')
+    plt.close()
     return None
 
 
 
-def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Learning Curve', figure_action='show', figure_path='figures/lc'):
+def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Learning Curve', figure_action='show', figure_path='figures/lc', file_name=None):
     '''
     heavily adapted from https://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
     '''
@@ -79,6 +86,10 @@ def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Lear
     elif figure_action == 'save':
         if not os.path.exists(figure_path):
             os.makedirs(figure_path)
-        plt.savefig(figure_path+'/'+str(algo.model_type)+'_'+str(algo.id)+'.png')
+        if file_name:
+            plt.savefig(figure_path+'/'+file_name+'.png')
+        else:
+            plt.savefig(figure_path+'/'+str(algo.model_type)+'_'+str(algo.id)+'.png')
+    plt.close()
     return None
 

@@ -6,6 +6,7 @@ import glob
 import numpy as np
 
 from sklearn import preprocessing
+
 from sklearn.model_selection import train_test_split
 # from sklearn.model_selection import KFold
 from sklearn.model_selection import cross_val_score
@@ -38,24 +39,32 @@ class MachineLearningModel(object):
     this is to help separate models by attributes, 
     i.e. this is a sklearn model and hence can use sklearn stuff, or a Keras model, or a XGBoost model, etc etc etc
     '''
-    def __init__(self, model, model_type, framework):
+    def __init__(self, model, model_type, framework, id=None):
         self.model = model
         self.framework = framework
         self.model_type = model_type
         self.metric = 0
-        self.id = int(datetime.datetime.now().strftime("%Y%m%d%H%M%S"))
+        if id:
+            self.id = id #set as id if provided
+        else:
+            self.id = int(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) #otherwise set id
     def set_metric(self, metric):
         self.metric = metric
     def __str__(self):
         return 'MODEL DETAILS: ' + self.model_type + ' model from ' + self.framework
     
 
-def clean_dataset(dirty_df_list, na_action='mean'):
+def clean_and_scale_dataset(dirty_df_dict, na_action='mean', scaler=None, class_col='class'):
     
     clean_df_list = []
 
-    for dirty_df in list(dirty_df_list):
+    if scaler:
+        scaler.fit(dirty_df_dict['train'].loc[:,dirty_df_dict['train'].columns!=class_col])
+    for df_name, dirty_df in dirty_df_dict.items():
         print(f'number of initial rows: {dirty_df.shape[0]}')
+
+        if scaler:
+            dirty_df.loc[:,dirty_df.columns!=class_col] = scaler.transform(dirty_df.loc[:,dirty_df.columns!=class_col])
 
         #how to handle na values in dataset:
         if na_action == 'drop':
@@ -105,7 +114,7 @@ def balance(df, class_col='class', balance_method='downsample'):
     return balanced_df
 
 
-def prep_data(df_dict, scale_data=False, shuffle_data=True, balance_method='downsample'):
+def prep_data(df_dict, shuffle_data=True, balance_method='downsample'):
     '''
     always pass training set as first df in list
     '''
@@ -125,8 +134,6 @@ def prep_data(df_dict, scale_data=False, shuffle_data=True, balance_method='down
                 df = balance(df, class_col='class', balance_method=balance_method)
 
         dataset_df = Dataset(df, 'class')
-        if scale_data:
-            dataset_df.data = preprocessing.scale(dataset_df.data)
         if shuffle_data:
             dataset_df.data, dataset_df.target = shuffle(dataset_df.data, dataset_df.target)
         
