@@ -1,3 +1,4 @@
+
 import pandas as pd 
 import datetime
 import pickle
@@ -20,9 +21,6 @@ from keras import backend as K
 
 from plot_utils import plot_confusion_matrix
 
-
-## general params:
-LOAD_PRETRAINED_MODELS = True
         
 
 class Dataset(object):
@@ -120,7 +118,7 @@ def balance(df, class_col='class', balance_method='downsample'):
     elif type(balance_method) == str:
         if balance_method == 'downsample':
             n_samples = min(df[class_col].value_counts())
-        if balance_method == 'upsample':
+        elif balance_method == 'upsample':
             n_samples = max(df[class_col].value_counts())
         else:
             raise ValueError('no viable sampling method provided, please enter (upsample, downsample, or an integer)')
@@ -128,11 +126,14 @@ def balance(df, class_col='class', balance_method='downsample'):
     df_list = []
     for label in np.unique(df[class_col]):
         subset_df = df[df[class_col]==label]
+        print('got into for loop')
         resampled_subset_df = resample(subset_df, 
                                         replace=(subset_df.shape[0]<n_samples),    # sample with replacement if less than number of samples, otherwise without replacement
                                         n_samples=n_samples)    # to match minority class
         df_list.append(resampled_subset_df)
     balanced_df = pd.concat(df_list)
+    
+    print('resampled to the following class distribution:\n',balanced_df[class_col].value_counts())
 
     return balanced_df
 
