@@ -69,7 +69,7 @@ def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Lear
         train_scores_std = np.std(train_scores, axis=1)
         val_scores_mean = np.mean(val_scores, axis=1)
         val_scores_std = np.std(val_scores, axis=1)
-        plt.xlabel("Training examples")
+        plt.xlabel("Training examples / Epochs")
         plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
                      train_scores_mean + train_scores_std, alpha=0.1, color='orange')
         plt.fill_between(train_sizes, val_scores_mean - val_scores_std,
@@ -81,9 +81,9 @@ def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Lear
     elif algo.framework == 'keras':
         #if there is only one value, not a range of values for k-fold cross validation
         plt.xlabel("Epochs")
-        plt.plot(train_sizes, train_scores, 'o-', color='orange',
+        plt.plot(train_sizes, train_scores, color='orange',
              label="Training score")
-        plt.plot(train_sizes, val_scores, 'o-', color='blue',
+        plt.plot(train_sizes, val_scores, color='blue',
                 label="Cross-validation score")
     plt.grid()
 
