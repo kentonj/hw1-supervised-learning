@@ -126,6 +126,7 @@ def balance(df, class_col='class', balance_method='downsample'):
     df_list = []
     for label in np.unique(df[class_col]):
         subset_df = df[df[class_col]==label]
+        print('got into for loop')
         resampled_subset_df = resample(subset_df, 
                                         replace=(subset_df.shape[0]<n_samples),    # sample with replacement if less than number of samples, otherwise without replacement
                                         n_samples=n_samples)    # to match minority class
