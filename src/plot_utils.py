@@ -18,7 +18,7 @@ def plot_confusion_matrix(cm, algo, classes, normalize=False, title='Confusion m
     
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
+        print('Normalized confusion matrix')
     else:
         print('Confusion matrix, without normalization')
 
@@ -35,8 +35,8 @@ def plot_confusion_matrix(cm, algo, classes, normalize=False, title='Confusion m
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+                 horizontalalignment='center',
+                 color='white' if cm[i, j] > thresh else 'black')
 
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
@@ -62,32 +62,25 @@ def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Lear
     plt.figure()
     plt.title(title)
     
-    plt.ylabel("Score")
+    plt.ylabel('Score')
 
     if algo.framework == 'sklearn':
         train_scores_mean = np.mean(train_scores, axis=1)
         train_scores_std = np.std(train_scores, axis=1)
         val_scores_mean = np.mean(val_scores, axis=1)
         val_scores_std = np.std(val_scores, axis=1)
-        plt.xlabel("Training examples / Epochs")
+        plt.xlabel('Training examples / Epochs')
         plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
                      train_scores_mean + train_scores_std, alpha=0.1, color='orange')
         plt.fill_between(train_sizes, val_scores_mean - val_scores_std,
                      val_scores_mean + val_scores_std, alpha=0.1, color='blue')
         plt.plot(train_sizes, train_scores_mean, 'o-', color='orange',
-             label="Training score")
+             label='Training score')
         plt.plot(train_sizes, val_scores_mean, 'o-', color='blue',
-                label="Cross-validation score")
-    elif algo.framework == 'keras':
-        #if there is only one value, not a range of values for k-fold cross validation
-        plt.xlabel("Epochs")
-        plt.plot(train_sizes, train_scores, color='orange',
-             label="Training score")
-        plt.plot(train_sizes, val_scores, color='blue',
-                label="Cross-validation score")
+                label='Cross-validation score')
     plt.grid()
 
-    plt.legend(loc="best")
+    plt.legend(loc='best')
     if figure_action == 'show':
         plt.show()
     elif figure_action == 'save':
@@ -96,7 +89,7 @@ def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Lear
         if file_name:
             plt.savefig(figure_path+'/'+file_name+'.png')
         else:
-            plt.savefig(figure_path+'/'+str(algo.model_type)+'_'+str(algo.id)+'.png')
+            plt.savefig(figure_path+'/'+str(algo.model_type)+'.png')
     plt.close()
     return None
 
