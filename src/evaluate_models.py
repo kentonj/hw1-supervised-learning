@@ -29,12 +29,13 @@ from etl_utils import *
 
 
 #general params:
+USE_DATASET = 'aps' #one of ('spam', 'aps')
 LOAD_PRETRAINED_MODELS = False
 RANDOM_STATE = 27
 PLOT_ACTION = 'save' # (None, 'save', 'show')
 N_LC_CHUNKS = 10 #number of chunks for learning curve data segmentation
 N_CV = 5 # number of kfold cross validation splits, 1/N_CV computes the validation percentage
-N_EPOCHS = 20000 # number of epochs for neural network training - early stopping call back stops training
+N_EPOCHS = 2000 # number of epochs for neural network training - early stopping call back stops training
 N_BATCH = 100 #batch size for neural network training
 BALANCE_METHOD = 'downsample' # number of samples, 'downsample' or 'upsample'
 
@@ -63,7 +64,7 @@ def generate_gradient_boosting_trees(id, n_features=None, n_classes=None):
     return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree', framework='sklearn', id=id)
 
 def generate_sk_mlp_classifier(id, n_features=None, n_classes=None):
-    gbt_classifier = MLPClassifier(hidden_layer_sizes=(100,20,) ,random_state=RANDOM_STATE)
+    gbt_classifier = MLPClassifier(hidden_layer_sizes=(100,20,) ,random_state=RANDOM_STATE, max_iter=N_EPOCHS,)
     return MachineLearningModel(gbt_classifier, model_type='MLPClassifier', framework='sklearn', id=id)
 
 def generate_mlp_network(id, n_features, n_classes):
@@ -75,10 +76,6 @@ def generate_mlp_network(id, n_features, n_classes):
     mlp_classifier.add(Dense(80))
     mlp_classifier.add(Activation('relu'))
     mlp_classifier.add(Dropout(0.2))
-
-    # mlp_classifier.add(Dense(80))
-    # mlp_classifier.add(Activation('relu'))
-    # mlp_classifier.add(Dropout(0.15))
 
     mlp_classifier.add(Dense(80))
     mlp_classifier.add(Activation('relu'))
@@ -95,10 +92,6 @@ def generate_mlp_network(id, n_features, n_classes):
     mlp_classifier.add(Dense(25))
     mlp_classifier.add(Activation('relu'))
     mlp_classifier.add(Dropout(0.33))
-
-    # mlp_classifier.add(Dense(20))
-    # mlp_classifier.add(Activation('relu'))
-    # mlp_classifier.add(Dropout(0.4))
 
     mlp_classifier.add(Dense(10))
     mlp_classifier.add(Activation('relu'))
@@ -175,8 +168,6 @@ def train_model(algo, training_data, n_folds=5, n_chunks=5):
                                 figure_path=('figures/'+str(algo.id)),
                                 file_name=(str(algo.model_type)+'_'+str(algo.id)+'_LC'))
 
-        
-
     return algo
 
 
@@ -223,29 +214,36 @@ def main():
     algo_batch_id = int(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) #set ID for one run, so all the algos have the same ID
     algo_generator_dict = {
         'MLPClassifier': generate_sk_mlp_classifier,
-        'SimpleKerasMLP': generate_simple_keras_mlp,
         'DecisionTree': generate_decision_tree,
         'SupportVectorMachineRBF': generate_svm_rbf,
         'SupportVectorMachinePoly': generate_svm_poly,
         'SupportVectorMachineLinear': generate_svm_linear,
         'KNearestNeighbors': generate_knn,
         'GradientBoostingTrees': generate_gradient_boosting_trees
-        # 'MLPNeuralNetwork': generate_mlp_network,
-        # 'MLPNeuralNetwork2': generate_mlp_network2
-        # 'MLPNeuralNetwork3': generate_mlp_network3,
-        # 'MLPNeuralNetwork4': generate_mlp_network4,    
     }
 
     #load dataset
-    dirty_train_df = pd.read_csv('data/aps_failure_training_set.csv', na_values=['na'])
-    dirty_test_df = pd.read_csv('data/aps_failure_test_set.csv', na_values=['na'])
+    if USE_DATASET == 'spam':
+        df = pd.read_csv('data/spambasedata.csv', sep=',')
+        #shuffle data before splitting to train and test
+        df = df.sample(frac=1).reset_index(drop=True)
+        train_frac = 0.8
+        train_samples = int(round(df.shape[0]*train_frac))
+        dirty_train_df = df[:train_samples,:]
+        dirty_test_df = df[train_samples:,:]
+        class_col = 'class'
+
+    elif USE_DATASET == 'aps':
+        dirty_train_df = pd.read_csv('data/aps_failure_training_set.csv', na_values=['na'])
+        dirty_test_df = pd.read_csv('data/aps_failure_test_set.csv', na_values=['na'])
+        class_col = 'class'
 
     #clean both datasets
     scaler = preprocessing.MinMaxScaler()
     [train_df, test_df] = clean_and_scale_dataset({'train':dirty_train_df, 'test':dirty_test_df}, scaler=scaler ,na_action=-1)
 
     #prep the datasets 
-    [train_dataset, test_dataset], label_encoder = prep_data({'train':train_df, 'test':test_df}, shuffle_data=True, balance_method=BALANCE_METHOD)
+    [train_dataset, test_dataset], label_encoder = prep_data({'train':train_df, 'test':test_df}, shuffle_data=True, balance_method=BALANCE_METHOD, class_col=class_col)
     print('{} maps to {}'.format(label_encoder.classes_, label_encoder.transform(label_encoder.classes_)))
     print('size of training dataset:', train_dataset.data.shape)
     print('size of testing dataset:', test_dataset.data.shape)

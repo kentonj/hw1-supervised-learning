@@ -126,38 +126,36 @@ def balance(df, class_col='class', balance_method='downsample'):
     df_list = []
     for label in np.unique(df[class_col]):
         subset_df = df[df[class_col]==label]
-        print('got into for loop')
         resampled_subset_df = resample(subset_df, 
                                         replace=(subset_df.shape[0]<n_samples),    # sample with replacement if less than number of samples, otherwise without replacement
                                         n_samples=n_samples)    # to match minority class
         df_list.append(resampled_subset_df)
     balanced_df = pd.concat(df_list)
     
-    print('resampled to the following class distribution:\n',balanced_df[class_col].value_counts())
-
     return balanced_df
 
 
-def prep_data(df_dict, shuffle_data=True, balance_method='downsample'):
+def prep_data(df_dict, shuffle_data=True, balance_method='downsample', class_col='class'):
     '''
     always pass training set as first df in list
     '''
     #encode dataset to binary variables
     encoder = preprocessing.LabelEncoder()
-    encoder.fit(df_dict['train']['class'])
+    encoder.fit(df_dict['train'][class_col])
 
     prepped_df_list = []
     
     for df_key, df in df_dict.items():
 
         #encode training dataset
-        df['class'] = encoder.transform(df['class'])
+        df[class_col] = encoder.transform(df[class_col])
 
         if balance_method:
             if df_key=='train': #only balance training data
-                df = balance(df, class_col='class', balance_method=balance_method)
+                df = balance(df, class_col=class_col, balance_method=balance_method)
+        print('current class counts:\n{}'.format(df[class_col].value_counts()))
 
-        dataset_df = Dataset(df, 'class')
+        dataset_df = Dataset(df, class_col)
         if shuffle_data:
             dataset_df.data, dataset_df.target = shuffle(dataset_df.data, dataset_df.target)
         
