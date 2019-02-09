@@ -64,20 +64,26 @@ def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Lear
     
     plt.ylabel('Score')
 
-    if algo.framework == 'sklearn':
+    if algo.nn == False: #not a neural network
         train_scores_mean = np.mean(train_scores, axis=1)
         train_scores_std = np.std(train_scores, axis=1)
         val_scores_mean = np.mean(val_scores, axis=1)
         val_scores_std = np.std(val_scores, axis=1)
-        plt.xlabel('Training examples / Epochs')
+        plt.xlabel('Epochs')
         plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
                      train_scores_mean + train_scores_std, alpha=0.1, color='orange')
         plt.fill_between(train_sizes, val_scores_mean - val_scores_std,
                      val_scores_mean + val_scores_std, alpha=0.1, color='blue')
-        plt.plot(train_sizes, train_scores_mean, 'o-', color='orange',
+        plt.plot(train_sizes, train_scores_mean, '-', color='orange',
              label='Training score')
-        plt.plot(train_sizes, val_scores_mean, 'o-', color='blue',
+        plt.plot(train_sizes, val_scores_mean, '-', color='blue',
                 label='Cross-validation score')
+    elif algo.nn == True: #not a neural network
+        plt.xlabel('Epochs')
+        plt.plot(train_sizes, train_scores, '-', color='orange',
+             label='Training loss')
+        plt.plot(train_sizes, val_scores, '-', color='blue',
+                label='Validation score')
     plt.grid()
 
     plt.legend(loc='best')

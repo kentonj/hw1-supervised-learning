@@ -29,16 +29,19 @@ class MachineLearningModel(object):
     '''
     this is to help separate models by attributes, i.e. IDs to keep track of many models being trained in one batch
     '''
-    def __init__(self, model, model_type, framework, id=None):
+    def __init__(self, model, model_type, framework, nn=False, id=None):
         self.model = model
         self.framework = framework
         self.model_type = model_type
+        self.nn = nn
         if id:
             self.id = id #set as id if provided
         else:
             self.id = int(datetime.datetime.now().strftime("%Y%m%d%H%M%S")) #otherwise set id to time right now
     def set_training_time(self, training_time):
-        self.training_time = round(training_time,2) #training time rounded to 2 decimals
+        self.training_time = round(training_time,4) #training time rounded to 4 decimals
+    def set_evaluation_time(self, evaluation_time):
+        self.evaluation_time = round(evaluation_time,4) #training time rounded to 4 decimals
     def __str__(self):
         return 'MODEL DETAILS: ' + self.model_type + ' model from ' + self.framework + ' with ID: ' + str(self.id)
 

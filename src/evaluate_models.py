@@ -27,52 +27,103 @@ PRETRAINED_MODELS_DIR = None # one of (None, directory to models), if not None -
 PRETRAINED_MODEL_FILEPATH = None # one of (None, directory to models) if not None - looks for the specified model
 RANDOM_STATE = 27
 PLOT_ACTION = 'save' # (None, 'save', 'show') # TODO: TURN THIS TO NONE BEFORE TURNING IN TO AVOID MATPLOTLIB ISSUES
-N_LC_CHUNKS = 2 #number of chunks for learning curve data segmentation
+N_LC_CHUNKS = 10 #number of chunks for learning curve data segmentation
 N_CV = 5 # number of kfold cross validation splits, 1/N_CV computes the validation percentage, if any
-N_EPOCHS = 20 # number of epochs for neural network training
+N_EPOCHS = 2000 # maximum number of epochs for neural network training
 BALANCE_METHOD = 'downsample' # (int, 'downsample' or 'upsample')
 SCORING_METRIC = 'roc_auc' #this works well for both balanced and imbalanced classification problems
 
-def generate_decision_tree(id, n_features=None, n_classes=None):
+def generate_decision_tree_more_pruning(id):
+    dt_classifier = DecisionTreeClassifier(criterion='entropy', random_state=RANDOM_STATE, max_depth=3, min_samples_split=0.08)
+    return MachineLearningModel(dt_classifier, model_type='DecisionTree-MorePruning', framework='sklearn', id=id)
+
+def generate_decision_tree_less_pruning(id):
     dt_classifier = DecisionTreeClassifier(criterion='entropy', random_state=RANDOM_STATE, max_depth=5, min_samples_split=0.02)
-    return MachineLearningModel(dt_classifier, model_type='DecisionTree', framework='sklearn', id=id)
+    return MachineLearningModel(dt_classifier, model_type='DecisionTree-LessPruning', framework='sklearn', id=id)
 
-def generate_svm_rbf(id, n_features=None, n_classes=None):
+def generate_svm_rbf_c1(id):
+    svm_classifier = SVC(C=1, kernel='rbf', random_state=RANDOM_STATE, gamma='scale')
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-RBF-C1', framework='sklearn', id=id)
+
+def generate_svm_rbf_c5(id):
     svm_classifier = SVC(C=5, kernel='rbf', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachineRBF', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-RBF-C5', framework='sklearn', id=id)
+    
+def generate_svm_rbf_c10(id):
+    svm_classifier = SVC(C=10, kernel='rbf', random_state=RANDOM_STATE, gamma='scale')
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-RBF-C10', framework='sklearn', id=id)
 
-def generate_svm_poly(id, n_features=None, n_classes=None):
+def generate_svm_poly_c5_degree2(id):
+    svm_classifier = SVC(C=5, kernel='poly', degree=2, random_state=RANDOM_STATE, gamma='scale')
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Poly-C5-Degree2', framework='sklearn', id=id)
+
+def generate_svm_poly_c5_degree3(id):
     svm_classifier = SVC(C=5, kernel='poly', degree=3, random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachinePoly', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Poly-C5-Degree3', framework='sklearn', id=id)
 
-def generate_svm_linear(id, n_features=None, n_classes=None):
+def generate_svm_poly_c5_degree4(id):
+    svm_classifier = SVC(C=5, kernel='poly', degree=4, random_state=RANDOM_STATE, gamma='scale')
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Poly-C5-Degree4', framework='sklearn', id=id)
+
+def generate_svm_linear_c1(id):
+    svm_classifier = SVC(C=1, kernel='linear', random_state=RANDOM_STATE, gamma='scale')
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Linear-C1', framework='sklearn', id=id)
+
+def generate_svm_linear_c5(id):
     svm_classifier = SVC(C=5, kernel='linear', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachineLinear', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Linear-C5', framework='sklearn', id=id)
 
-def generate_knn_20(id, n_features=None, n_classes=None):
-    knn_classifier = KNeighborsClassifier(n_neighbors=5)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors20', framework='sklearn', id=id)
+def generate_svm_linear_c10(id):
+    svm_classifier = SVC(C=10, kernel='linear', random_state=RANDOM_STATE, gamma='scale')
+    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Linear-C10', framework='sklearn', id=id)
 
-def generate_knn_15(id, n_features=None, n_classes=None):
-    knn_classifier = KNeighborsClassifier(n_neighbors=15)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors15', framework='sklearn', id=id)
+def generate_knn_20_euclidean(id):
+    knn_classifier = KNeighborsClassifier(n_neighbors=5, p=2)
+    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K20-DistanceEuclidean', framework='sklearn', id=id)
 
-def generate_knn_10(id, n_features=None, n_classes=None):
-    knn_classifier = KNeighborsClassifier(n_neighbors=10)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors10', framework='sklearn', id=id)
+def generate_knn_15_euclidean(id):
+    knn_classifier = KNeighborsClassifier(n_neighbors=15, p=2)
+    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K15-DistanceEuclidean', framework='sklearn', id=id)
 
-def generate_knn_5(id, n_features=None, n_classes=None):
-    knn_classifier = KNeighborsClassifier(n_neighbors=5)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors5', framework='sklearn', id=id)
+def generate_knn_10_manhattan(id):
+    knn_classifier = KNeighborsClassifier(n_neighbors=10, p=1)
+    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K10-DistanceManhattan', framework='sklearn', id=id)
 
-def generate_gradient_boosting_trees(id, n_features=None, n_classes=None):
-    gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.2, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
-    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree', framework='sklearn', id=id)
+def generate_knn_10_euclidean(id):
+    knn_classifier = KNeighborsClassifier(n_neighbors=10, p=2)
+    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K10-DistanceEuclidean', framework='sklearn', id=id)
 
-def generate_sk_mlp_classifier(id, n_features=None, n_classes=None):
-    gbt_classifier = MLPClassifier(hidden_layer_sizes=(100,20,) ,random_state=RANDOM_STATE, max_iter=N_EPOCHS,)
-    return MachineLearningModel(gbt_classifier, model_type='MLPClassifier', framework='sklearn', id=id)
+def generate_knn_5_euclidean(id):
+    knn_classifier = KNeighborsClassifier(n_neighbors=5, p=2)
+    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K5-DistanceEuclidean', framework='sklearn', id=id)
 
+def generate_gradient_boosting_trees_lr01(id):
+    gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.01, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
+    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.01', framework='sklearn', id=id)
+
+def generate_gradient_boosting_trees_lr05(id):
+    gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.05, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
+    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.05', framework='sklearn', id=id)
+
+def generate_gradient_boosting_trees_lr1(id):
+    gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.1, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
+    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.1', framework='sklearn', id=id)
+
+def generate_gradient_boosting_trees_lr5(id):
+    gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.5, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
+    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.5', framework='sklearn', id=id)
+
+def generate_sk_mlp_classifier_lr001(id):
+    mlp_classifier = MLPClassifier(hidden_layer_sizes=(100,20,), early_stopping=True, n_iter_no_change=50, tol=0.0001, random_state=RANDOM_STATE, max_iter=N_EPOCHS, learning_rate_init=0.001)
+    return MachineLearningModel(mlp_classifier, model_type='MLPClassifier-LearningRate0.001', framework='sklearn', nn=True, id=id)
+
+def generate_sk_mlp_classifier_lr01(id):
+    mlp_classifier = MLPClassifier(hidden_layer_sizes=(100,20,), early_stopping=True, n_iter_no_change=50, tol=0.0001, random_state=RANDOM_STATE, max_iter=N_EPOCHS, learning_rate_init=0.01)
+    return MachineLearningModel(mlp_classifier, model_type='MLPClassifier-LearningRate0.01', framework='sklearn', nn=True, id=id)
+
+def generate_sk_mlp_classifier_lr1(id):
+    mlp_classifier = MLPClassifier(hidden_layer_sizes=(100,20,), early_stopping=True, n_iter_no_change=50, tol=0.0001, random_state=RANDOM_STATE, max_iter=N_EPOCHS, learning_rate_init=0.1)
+    return MachineLearningModel(mlp_classifier, model_type='MLPClassifier-LearningRate0.1', framework='sklearn', nn=True, id=id)
 
 def train_model(algo, training_data, n_folds=5, n_chunks=5):
     '''
@@ -80,20 +131,29 @@ def train_model(algo, training_data, n_folds=5, n_chunks=5):
     and fits the model
     '''
     if algo.framework == 'sklearn':
-        print('creating learning curves...'.format(algo.model_type))
-        train_sizes, train_scores, val_scores = learning_curve(algo.model, 
-                                                                training_data.data, 
-                                                                training_data.target, 
-                                                                scoring=SCORING_METRIC,
-                                                                cv=n_folds, 
-                                                                train_sizes=np.linspace(0.1, 1.0, n_chunks))
         
-        print('training model...'.format(algo.model_type))
+        if algo.nn == False:
+            print('creating learning curves...')
+            train_sizes, train_scores, val_scores = learning_curve(algo.model, 
+                                                                    training_data.data, 
+                                                                    training_data.target, 
+                                                                    scoring=SCORING_METRIC,
+                                                                    cv=n_folds, 
+                                                                    train_sizes=np.linspace(0.1, 1.0, n_chunks))
+            # set train sizes as the number of epochs
+
+        print('training model...')
         training_start = time.time()
         algo.model.fit(training_data.data, training_data.target)
         training_end = time.time()
         algo.set_training_time(training_end-training_start)
         print('time to train: {} seconds'.format(algo.training_time))
+
+        #neural network training curves are based on epochs
+        if algo.nn == True:
+            train_scores = algo.model.loss_curve_ 
+            val_scores = algo.model.validation_scores_
+            train_sizes = list([i for i in range(algo.model.n_iter_)])
 
         cv_scores = cross_val_score(algo.model, training_data.data, training_data.target, scoring=SCORING_METRIC, cv=n_folds)
         algo.cv_score = cv_scores.mean()
@@ -116,8 +176,12 @@ def evaluate_model(algo, test_data, classes_list, figure_action='save'):
     using the fitted model, 
     '''
     print('evaluating model...')
-    if algo.framework == 'sklearn':
-        predictions = algo.model.predict(test_data.data)
+    eval_start = time.time()
+    predictions = algo.model.predict(test_data.data)
+    eval_end = time.time()
+    algo.set_evaluation_time(eval_end-eval_start)
+    print('time to predict: {} seconds'.format(algo.evaluation_time))
+    
     
     cm = confusion_matrix(test_data.target, predictions)
     if PLOT_ACTION:
@@ -152,16 +216,29 @@ def main():
 
     algo_batch_id = int(datetime.datetime.now().strftime('%Y%m%d%H%M%S')) #set ID for one run, so all the algos have the same ID
     algo_generator_dict = {
-        'MLPClassifier': generate_sk_mlp_classifier,
-        'DecisionTree': generate_decision_tree,
-        'SupportVectorMachineRBF': generate_svm_rbf,
-        'SupportVectorMachinePoly': generate_svm_poly,
-        'SupportVectorMachineLinear': generate_svm_linear,
-        'KNearestNeighbors20': generate_knn_20,
-        'KNearestNeighbors15': generate_knn_15,
-        'KNearestNeighbors10': generate_knn_10,
-        'KNearestNeighbors5': generate_knn_5,
-        'GradientBoostingTree': generate_gradient_boosting_trees
+        'DecisionTree-MorePruning': generate_decision_tree_more_pruning,
+        'DecisionTree-LessPruning': generate_decision_tree_less_pruning,
+        'SupportVectorMachine-RBF-C1': generate_svm_rbf_c1,
+        'SupportVectorMachine-RBF-C5': generate_svm_rbf_c5,
+        'SupportVectorMachine-RBF-C10': generate_svm_rbf_c10,
+        'SupportVectorMachine-Poly-C5-Degree2': generate_svm_poly_c5_degree2,
+        'SupportVectorMachine-Poly-C5-Degree3': generate_svm_poly_c5_degree3,
+        'SupportVectorMachine-Poly-C5-Degree4': generate_svm_poly_c5_degree4,
+        'SupportVectorMachine-Linear-C1': generate_svm_linear_c1,
+        'SupportVectorMachine-Linear-C5': generate_svm_linear_c5,
+        'SupportVectorMachine-Linear-C10': generate_svm_linear_c10,
+        'KNearestNeighbors-K20-DistanceEuclidean': generate_knn_20_euclidean,
+        'KNearestNeighbors-K15-DistanceEuclidean': generate_knn_15_euclidean,
+        'KNearestNeighbors-K10-DistanceManhattan': generate_knn_10_manhattan,
+        'KNearestNeighbors-K10-DistanceEuclidean': generate_knn_10_euclidean,
+        'KNearestNeighbors-K5-DistanceEuclidean':generate_knn_5_euclidean,
+        'GradientBoostingTree-LearningRate0.01': generate_gradient_boosting_trees_lr01,
+        'GradientBoostingTree-LearningRate0.05': generate_gradient_boosting_trees_lr05,
+        'GradientBoostingTree-LearningRate0.1': generate_gradient_boosting_trees_lr1,
+        'GradientBoostingTree-LearningRate0.5': generate_gradient_boosting_trees_lr5,
+        'MLPClassifier-LearningRate0.001': generate_sk_mlp_classifier_lr001,
+        'MLPClassifier-LearningRate0.01': generate_sk_mlp_classifier_lr01,
+        'MLPClassifier-LearningRate0.1': generate_sk_mlp_classifier_lr1
     }
 
     #load dataset
@@ -194,18 +271,6 @@ def main():
     print('size of training dataset:', train_dataset.data.shape)
     print('class counts:\n', train_dataset.df[class_col].value_counts())
 
-    
-    # if LOAD_PRETRAINED_MODELS:
-    #     for algo_key, algo_generator in algo_generator_dict.items():
-    #         try:
-    #             algo = pickle_load_model(models_directory='models', model_type=algo_key, model_selection_criteria='recent')
-    #             print('loaded algo:\n', algo_key)
-    #         except:
-    #             print('\ntraining: {} -- loading the specified algorithm failed'.format(algo_key))
-    #             algo = algo_generator_dict[algo_key](id=algo_batch_id, n_features=train_dataset.data.shape[1], n_classes=len(label_encoder.classes_))
-    #             algo = train_model(algo, train_dataset, n_folds=N_CV, n_chunks=N_LC_CHUNKS)
-    #         finally:
-    #             raise Exception('failed to load or train algorithm, aborting')
     if PRETRAINED_MODEL_FILEPATH:
         try:
             algo = pickle_load_model(model_path=PRETRAINED_MODEL_FILEPATH)
@@ -214,9 +279,10 @@ def main():
             return None #break out of main function early if a single file is specified
         except:
             raise Exception('failed to load specified model, aborting')
-            
+
     for algo_key, algo_generator in algo_generator_dict.items():
         print('\nModel Name: {}'.format(algo_key))
+        ## TODO: consider cleaning this up to look in a directory then pull all models in that directory, iterating through and evaluating each one
         if PRETRAINED_MODELS_DIR:
             try:
                 algo = pickle_load_model(models_directory=PRETRAINED_MODELS_DIR, model_type=algo_key)
@@ -224,13 +290,14 @@ def main():
             except:
                 try:
                     print('\ntraining: {} -- loading the specified algorithm failed'.format(algo_key))
-                    algo = algo_generator_dict[algo_key](id=algo_batch_id, n_features=train_dataset.data.shape[1], n_classes=len(label_encoder.classes_))
+                    algo = algo_generator_dict[algo_key](id=algo_batch_id)
                     algo = train_model(algo, train_dataset, n_folds=N_CV, n_chunks=N_LC_CHUNKS)
                 except:
                     raise Exception('failed to load or train algorithm, aborting')
         
         else:
-            algo = algo_generator_dict[algo_key](id=algo_batch_id, n_features=train_dataset.data.shape[1], n_classes=len(label_encoder.classes_))
+
+            algo = algo_generator_dict[algo_key](id=algo_batch_id)
             algo = train_model(algo, train_dataset, n_folds=N_CV, n_chunks=N_LC_CHUNKS)
             pickle_save_model(algo, model_folder=('models/'+str(algo.id)))
 
