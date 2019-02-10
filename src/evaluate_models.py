@@ -296,7 +296,7 @@ def main():
                                     figure_path='output/'+str(algo_batch_id)+'/figures/cm',
                                     file_name=(str(algo_family)))
 
-    detail_df.to_csv('output/'+str(algo_batch_id)+'/models_summary_'+str(USE_DATASET)+'.csv', sep=',', encoding='utf-8', index=False)
+    # detail_df.to_csv('output/'+str(algo_batch_id)+'/models_summary_'+str(USE_DATASET)+'.csv', sep=',', encoding='utf-8', index=False)
     
 if __name__ == '__main__': 
     main()
