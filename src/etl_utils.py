@@ -10,8 +10,6 @@ from sklearn import preprocessing
 
 from sklearn.utils import shuffle, resample
 
-        
-
 class Dataset(object):
     '''
     this class is used to more easily structure classification datasets between the data (matrix of values) and the target (class)
@@ -29,11 +27,16 @@ class MachineLearningModel(object):
     '''
     this is to help separate models by attributes, i.e. IDs to keep track of many models being trained in one batch
     '''
-    def __init__(self, model, model_type, framework, nn=False, id=None):
+    def __init__(self, model, model_family, model_type, framework, nn=False, id=None):
         self.model = model
         self.framework = framework
+        self.model_family = model_family
         self.model_type = model_type
         self.nn = nn
+        self.train_sizes = None
+        self.train_scores = None
+        self.val_scores = None
+        self.cm = None
         if id:
             self.id = id #set as id if provided
         else:
@@ -42,6 +45,22 @@ class MachineLearningModel(object):
         self.training_time = round(training_time,4) #training time rounded to 4 decimals
     def set_evaluation_time(self, evaluation_time):
         self.evaluation_time = round(evaluation_time,4) #training time rounded to 4 decimals
+    def get_train_sizes(self):
+        return self.train_sizes
+    def get_train_scores(self):
+        if self.model_family != 'NeuralNetwork':
+            return np.mean(self.train_scores, axis=1)
+        else:
+            return self.train_scores
+    def get_validation_scores(self):
+        if self.model_family != 'NeuralNetwork':
+            return np.mean(self.val_scores, axis=1)
+        else:
+            return self.val_scores
+    def get_cm(self):
+        return self.cm
+    def get_normalized_cm(self):
+        return self.cm.astype('float') / self.cm.sum(axis=1)[:, np.newaxis]
     def __str__(self):
         return 'MODEL DETAILS: ' + self.model_type + ' model from ' + self.framework + ' with ID: ' + str(self.id)
 
@@ -140,25 +159,11 @@ def pickle_save_model(algo, model_folder='models'):
     pickle.dump(algo, open(filename, 'wb'))
     return None
 
-def pickle_load_model(model_path=None, models_directory=None, model_type=None):
+def pickle_load_model(model_path):
     '''
     if no model_full_path is provided, then assume that we are looking for the most recent model
     model type can also be specified to retrieve the most recent model of a current type
     '''
-    if model_path:
-        model_path = model_path
-    else:
-        model_path = './'
-        if models_directory:
-            model_path = models_directory + '/'
-            if model_type:
-                model_path += model_type
-        all_possible_files = glob.glob(model_path+'*')
-        print([all_possible_files])
-        model_path = all_possible_files[-1]
-        print('last model selected:', model_path)
-        
-
     try:
         model = pickle.load(open(model_path, 'rb'))
         print('model successfully loaded from: {}'.format(model_path))

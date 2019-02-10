@@ -1,5 +1,3 @@
-
-
 import pandas as pd 
 import datetime
 import time
@@ -17,156 +15,140 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import confusion_matrix, f1_score, recall_score, precision_score, roc_auc_score, auc, accuracy_score, roc_curve, balanced_accuracy_score
 
 
-from plot_utils import plot_confusion_matrix, plot_learning_curve
+from plot_utils import plot_confusion_matrix, plot_model_family_learning_curves
 from etl_utils import *
 
 
 #general params:
-USE_DATASET = 'spam' #one of ('spam', 'aps')
-PRETRAINED_MODELS_DIR = None # one of (None, directory to models), if not None - looks for each model inside the directory
-PRETRAINED_MODEL_FILEPATH = None # one of (None, directory to models) if not None - looks for the specified model
+USE_DATASET = 'aps' #one of ('spam', 'aps')
+SAVE_MODELS = False #set to true if you want to pickle save your model
+PRETRAINED_MODEL_FILEPATH = None # one of (None, directory to models) - default to None to train models, if not None - looks for the specified model
 RANDOM_STATE = 27
-PLOT_ACTION = 'save' # (None, 'save', 'show') # TODO: TURN THIS TO NONE BEFORE TURNING IN TO AVOID MATPLOTLIB ISSUES
+PLOT_ACTION = None # (None, 'save', 'show') - default to None to avoid issues with matplotlib depending on OS
 N_LC_CHUNKS = 10 #number of chunks for learning curve data segmentation
 N_CV = 5 # number of kfold cross validation splits, 1/N_CV computes the validation percentage, if any
 N_EPOCHS = 2000 # maximum number of epochs for neural network training
 BALANCE_METHOD = 'downsample' # (int, 'downsample' or 'upsample')
 SCORING_METRIC = 'roc_auc' #this works well for both balanced and imbalanced classification problems
 
-def generate_decision_tree_more_pruning(id):
-    dt_classifier = DecisionTreeClassifier(criterion='entropy', random_state=RANDOM_STATE, max_depth=3, min_samples_split=0.08)
-    return MachineLearningModel(dt_classifier, model_type='DecisionTree-MorePruning', framework='sklearn', id=id)
+def generate_decision_tree_most_pruning(id):
+    dt_classifier = DecisionTreeClassifier(criterion='entropy', random_state=RANDOM_STATE, max_depth=2, min_samples_split=0.2)
+    return MachineLearningModel(dt_classifier, model_family='DecisionTree', model_type='DT-MostPruning', framework='sklearn', id=id)
 
-def generate_decision_tree_less_pruning(id):
+def generate_decision_tree_middle_pruning(id):
+    dt_classifier = DecisionTreeClassifier(criterion='entropy', random_state=RANDOM_STATE, max_depth=3, min_samples_split=0.08)
+    return MachineLearningModel(dt_classifier, model_family='DecisionTree', model_type='DT-MiddlePruning', framework='sklearn', id=id)
+
+def generate_decision_tree_least_pruning(id):
     dt_classifier = DecisionTreeClassifier(criterion='entropy', random_state=RANDOM_STATE, max_depth=5, min_samples_split=0.02)
-    return MachineLearningModel(dt_classifier, model_type='DecisionTree-LessPruning', framework='sklearn', id=id)
+    return MachineLearningModel(dt_classifier, model_family='DecisionTree', model_type='DT-LeastPruning', framework='sklearn', id=id)
 
 def generate_svm_rbf_c1(id):
     svm_classifier = SVC(C=1, kernel='rbf', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-RBF-C1', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_family='SVM-RBF', model_type='SVM-RBF-C1', framework='sklearn', id=id)
 
 def generate_svm_rbf_c5(id):
     svm_classifier = SVC(C=5, kernel='rbf', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-RBF-C5', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_family='SVM-RBF',model_type='SVM-RBF-C5', framework='sklearn', id=id)
     
-def generate_svm_rbf_c10(id):
-    svm_classifier = SVC(C=10, kernel='rbf', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-RBF-C10', framework='sklearn', id=id)
+def generate_svm_rbf_c100(id):
+    svm_classifier = SVC(C=100, kernel='rbf', random_state=RANDOM_STATE, gamma='scale')
+    return MachineLearningModel(svm_classifier, model_family='SVM-RBF', model_type='SVM-RBF-C100', framework='sklearn', id=id)
 
 def generate_svm_poly_c5_degree2(id):
     svm_classifier = SVC(C=5, kernel='poly', degree=2, random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Poly-C5-Degree2', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_family='SVM-Poly', model_type='SVM-Poly-C5-D2', framework='sklearn', id=id)
 
 def generate_svm_poly_c5_degree3(id):
     svm_classifier = SVC(C=5, kernel='poly', degree=3, random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Poly-C5-Degree3', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_family='SVM-Poly', model_type='SVM-Poly-C5-D3', framework='sklearn', id=id)
 
 def generate_svm_poly_c5_degree4(id):
     svm_classifier = SVC(C=5, kernel='poly', degree=4, random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Poly-C5-Degree4', framework='sklearn', id=id)
+    return MachineLearningModel(svm_classifier, model_family='SVM-Poly', model_type='SVM-Poly-C5-D4', framework='sklearn', id=id)
 
-def generate_svm_linear_c1(id):
-    svm_classifier = SVC(C=1, kernel='linear', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Linear-C1', framework='sklearn', id=id)
-
-def generate_svm_linear_c5(id):
-    svm_classifier = SVC(C=5, kernel='linear', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Linear-C5', framework='sklearn', id=id)
-
-def generate_svm_linear_c10(id):
-    svm_classifier = SVC(C=10, kernel='linear', random_state=RANDOM_STATE, gamma='scale')
-    return MachineLearningModel(svm_classifier, model_type='SupportVectorMachine-Linear-C10', framework='sklearn', id=id)
-
-def generate_knn_20_euclidean(id):
+def generate_knn_20_p2(id):
     knn_classifier = KNeighborsClassifier(n_neighbors=5, p=2)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K20-DistanceEuclidean', framework='sklearn', id=id)
+    return MachineLearningModel(knn_classifier, model_family='KNN', model_type='KNN-K20-P2', framework='sklearn', id=id)
 
-def generate_knn_15_euclidean(id):
+def generate_knn_15_p2(id):
     knn_classifier = KNeighborsClassifier(n_neighbors=15, p=2)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K15-DistanceEuclidean', framework='sklearn', id=id)
+    return MachineLearningModel(knn_classifier, model_family='KNN', model_type='KNN-K15-P2', framework='sklearn', id=id)
 
-def generate_knn_10_manhattan(id):
+def generate_knn_10_p1(id):
     knn_classifier = KNeighborsClassifier(n_neighbors=10, p=1)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K10-DistanceManhattan', framework='sklearn', id=id)
+    return MachineLearningModel(knn_classifier, model_family='KNN', model_type='KNN-K10-P1', framework='sklearn', id=id)
 
-def generate_knn_10_euclidean(id):
+def generate_knn_10_p2(id):
     knn_classifier = KNeighborsClassifier(n_neighbors=10, p=2)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K10-DistanceEuclidean', framework='sklearn', id=id)
+    return MachineLearningModel(knn_classifier, model_family='KNN', model_type='KNN-K10-P2', framework='sklearn', id=id)
 
-def generate_knn_5_euclidean(id):
+def generate_knn_5_p2(id):
     knn_classifier = KNeighborsClassifier(n_neighbors=5, p=2)
-    return MachineLearningModel(knn_classifier, model_type='KNearestNeighbors-K5-DistanceEuclidean', framework='sklearn', id=id)
+    return MachineLearningModel(knn_classifier, model_family='KNN', model_type='KNN-K5-P2', framework='sklearn', id=id)
 
-def generate_gradient_boosting_trees_lr01(id):
+def generate_gradient_boosting_tree_lr01(id):
     gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.01, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
-    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.01', framework='sklearn', id=id)
+    return MachineLearningModel(gbt_classifier, model_family='GradientBoostingTree', model_type='GBT-LR.01', framework='sklearn', id=id)
 
-def generate_gradient_boosting_trees_lr05(id):
+def generate_gradient_boosting_tree_lr05(id):
     gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.05, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
-    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.05', framework='sklearn', id=id)
+    return MachineLearningModel(gbt_classifier, model_family='GradientBoostingTree', model_type='GBT-LR.05', framework='sklearn', id=id)
 
-def generate_gradient_boosting_trees_lr1(id):
+def generate_gradient_boosting_tree_lr1(id):
     gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.1, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
-    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.1', framework='sklearn', id=id)
+    return MachineLearningModel(gbt_classifier, model_family='GradientBoostingTree', model_type='GBT-LR.1', framework='sklearn', id=id)
 
-def generate_gradient_boosting_trees_lr5(id):
+def generate_gradient_boosting_tree_lr5(id):
     gbt_classifier = GradientBoostingClassifier(loss='deviance', learning_rate=0.5, n_estimators=50, max_depth=5, min_samples_split=0.02, random_state=RANDOM_STATE)
-    return MachineLearningModel(gbt_classifier, model_type='GradientBoostingTree-LearningRate0.5', framework='sklearn', id=id)
+    return MachineLearningModel(gbt_classifier, model_family='GradientBoostingTree', model_type='GBT-LR.5', framework='sklearn', id=id)
 
 def generate_sk_mlp_classifier_lr001(id):
     mlp_classifier = MLPClassifier(hidden_layer_sizes=(100,20,), early_stopping=True, n_iter_no_change=50, tol=0.0001, random_state=RANDOM_STATE, max_iter=N_EPOCHS, learning_rate_init=0.001)
-    return MachineLearningModel(mlp_classifier, model_type='MLPClassifier-LearningRate0.001', framework='sklearn', nn=True, id=id)
+    return MachineLearningModel(mlp_classifier, model_family='NeuralNetwork', model_type='MLP-LR.001', framework='sklearn', nn=True, id=id)
 
 def generate_sk_mlp_classifier_lr01(id):
     mlp_classifier = MLPClassifier(hidden_layer_sizes=(100,20,), early_stopping=True, n_iter_no_change=50, tol=0.0001, random_state=RANDOM_STATE, max_iter=N_EPOCHS, learning_rate_init=0.01)
-    return MachineLearningModel(mlp_classifier, model_type='MLPClassifier-LearningRate0.01', framework='sklearn', nn=True, id=id)
+    return MachineLearningModel(mlp_classifier, model_family='NeuralNetwork', model_type='MLP-LR.01', framework='sklearn', nn=True, id=id)
 
 def generate_sk_mlp_classifier_lr1(id):
     mlp_classifier = MLPClassifier(hidden_layer_sizes=(100,20,), early_stopping=True, n_iter_no_change=50, tol=0.0001, random_state=RANDOM_STATE, max_iter=N_EPOCHS, learning_rate_init=0.1)
-    return MachineLearningModel(mlp_classifier, model_type='MLPClassifier-LearningRate0.1', framework='sklearn', nn=True, id=id)
+    return MachineLearningModel(mlp_classifier, model_family='NeuralNetwork', model_type='MLP-LR.1', framework='sklearn', nn=True, id=id)
 
 def train_model(algo, training_data, n_folds=5, n_chunks=5):
     '''
     use this for a nice wrapper on training and evaluating a ML model from sklearn, runs a learning curve
     and fits the model
     '''
-    if algo.framework == 'sklearn':
-        
-        if algo.nn == False:
-            print('creating learning curves...')
-            train_sizes, train_scores, val_scores = learning_curve(algo.model, 
-                                                                    training_data.data, 
-                                                                    training_data.target, 
-                                                                    scoring=SCORING_METRIC,
-                                                                    cv=n_folds, 
-                                                                    train_sizes=np.linspace(0.1, 1.0, n_chunks))
-            # set train sizes as the number of epochs
+    if algo.nn == False:
+        print('generating learning curve data...')
+        train_sizes, train_scores, val_scores = learning_curve(algo.model, 
+                                                                training_data.data, 
+                                                                training_data.target, 
+                                                                scoring=SCORING_METRIC,
+                                                                cv=n_folds, 
+                                                                train_sizes=np.linspace(0.1, 1.0, n_chunks))
+        # set train sizes as the number of epochs
 
-        print('training model...')
-        training_start = time.time()
-        algo.model.fit(training_data.data, training_data.target)
-        training_end = time.time()
-        algo.set_training_time(training_end-training_start)
-        print('time to train: {} seconds'.format(algo.training_time))
+    print('training model...')
+    training_start = time.time()
+    algo.model.fit(training_data.data, training_data.target)
+    training_end = time.time()
+    algo.set_training_time(training_end-training_start)
+    print('time to train: {} seconds'.format(algo.training_time))
 
-        #neural network training curves are based on epochs
-        if algo.nn == True:
-            train_scores = algo.model.loss_curve_ 
-            val_scores = algo.model.validation_scores_
-            train_sizes = list([i for i in range(algo.model.n_iter_)])
+    #neural network training curves are based on epochs, not number of samples
+    if algo.nn == True:
+        train_scores = algo.model.loss_curve_ 
+        val_scores = algo.model.validation_scores_
+        train_sizes = list([i for i in range(algo.model.n_iter_)])
 
-        cv_scores = cross_val_score(algo.model, training_data.data, training_data.target, scoring=SCORING_METRIC, cv=n_folds)
-        algo.cv_score = cv_scores.mean()
-        print('average cross validation {} score: {} (+/- {})'.format(SCORING_METRIC, round(cv_scores.mean(),2), round(cv_scores.std() * 2,2)))
-        if PLOT_ACTION:
-            plot_learning_curve(algo, 
-                                train_sizes, 
-                                train_scores, 
-                                val_scores, 
-                                title=('Learning Curve - '+str(algo.model_type)),
-                                figure_action=PLOT_ACTION, 
-                                figure_path=('figures/'+str(algo.id)),
-                                file_name=(str(algo.model_type)+'_LC'))
+    cv_scores = cross_val_score(algo.model, training_data.data, training_data.target, scoring=SCORING_METRIC, cv=n_folds)
+    algo.cv_score = cv_scores.mean()
+    algo.train_sizes = train_sizes
+    algo.train_scores = train_scores
+    algo.val_scores = val_scores
+    print('average cross validation {} score: {} (+/- {})'.format(SCORING_METRIC, round(cv_scores.mean(),2), round(cv_scores.std() * 2,2)))
 
     return algo
 
@@ -180,65 +162,57 @@ def evaluate_model(algo, test_data, classes_list, figure_action='save'):
     predictions = algo.model.predict(test_data.data)
     eval_end = time.time()
     algo.set_evaluation_time(eval_end-eval_start)
-    print('time to predict: {} seconds'.format(algo.evaluation_time))
+    print('time to predict {} samples: {} seconds'.format(test_data.data.shape[0],algo.evaluation_time))
     
     
     cm = confusion_matrix(test_data.target, predictions)
-    if PLOT_ACTION:
-        plot_confusion_matrix(cm, 
-                                algo, 
-                                classes=classes_list, 
-                                normalize=False, 
-                                title=('Confusion Matrix - '+str(algo.model_type)),
-                                figure_action=PLOT_ACTION, 
-                                figure_path=('figures/'+str(algo.id)),
-                                file_name=(str(algo.model_type)+'_CM'))
-        plot_confusion_matrix(cm, 
-                                algo, 
-                                classes=classes_list, 
-                                normalize=True, 
-                                title=('Normalized Confusion Matrix - '+str(algo.model_type)),
-                                figure_action=PLOT_ACTION, 
-                                figure_path=('figures/'+str(algo.id)),
-                                file_name=(str(algo.model_type)+'_CM_normalized'))
+    algo.cm = cm
+    print('confusion matrix:\n',algo.cm)
 
     fp_rate, tp_rate, thresh = roc_curve(test_data.target, predictions)
-    print('precision         |', round(precision_score(test_data.target, predictions),2))
-    print('recall            |', round(recall_score(test_data.target, predictions),2))
-    print('F1                |', round(f1_score(test_data.target, predictions),2))
-    print('ROC-AUC           |', round(roc_auc_score(test_data.target, predictions),2))
-    print('accuracy          |', round(accuracy_score(test_data.target,predictions),2))
-    print('balanced accuracy |', round(balanced_accuracy_score(test_data.target,predictions),2))
-    return None
+    algo.precision = precision_score(test_data.target, predictions)
+    algo.recall = recall_score(test_data.target, predictions)
+    algo.f1 = f1_score(test_data.target, predictions)
+    algo.roc_auc = roc_auc_score(test_data.target, predictions)
+    algo.accuracy = accuracy_score(test_data.target,predictions)
+    algo.balanced_accuracy = balanced_accuracy_score(test_data.target,predictions)
+    print('precision         |', round(algo.precision,2))
+    print('recall            |', round(algo.recall,2))
+    print('F1                |', round(algo.f1,2))
+    print('ROC-AUC           |', round(algo.roc_auc,2))
+    print('accuracy          |', round(algo.accuracy,2))
+    print('balanced accuracy |', round(algo.balanced_accuracy,2))
+    return algo
 
 
 def main():
 
     algo_batch_id = int(datetime.datetime.now().strftime('%Y%m%d%H%M%S')) #set ID for one run, so all the algos have the same ID
-    algo_generator_dict = {
-        'DecisionTree-MorePruning': generate_decision_tree_more_pruning,
-        'DecisionTree-LessPruning': generate_decision_tree_less_pruning,
-        'SupportVectorMachine-RBF-C1': generate_svm_rbf_c1,
-        'SupportVectorMachine-RBF-C5': generate_svm_rbf_c5,
-        'SupportVectorMachine-RBF-C10': generate_svm_rbf_c10,
-        'SupportVectorMachine-Poly-C5-Degree2': generate_svm_poly_c5_degree2,
-        'SupportVectorMachine-Poly-C5-Degree3': generate_svm_poly_c5_degree3,
-        'SupportVectorMachine-Poly-C5-Degree4': generate_svm_poly_c5_degree4,
-        'SupportVectorMachine-Linear-C1': generate_svm_linear_c1,
-        'SupportVectorMachine-Linear-C5': generate_svm_linear_c5,
-        'SupportVectorMachine-Linear-C10': generate_svm_linear_c10,
-        'KNearestNeighbors-K20-DistanceEuclidean': generate_knn_20_euclidean,
-        'KNearestNeighbors-K15-DistanceEuclidean': generate_knn_15_euclidean,
-        'KNearestNeighbors-K10-DistanceManhattan': generate_knn_10_manhattan,
-        'KNearestNeighbors-K10-DistanceEuclidean': generate_knn_10_euclidean,
-        'KNearestNeighbors-K5-DistanceEuclidean':generate_knn_5_euclidean,
-        'GradientBoostingTree-LearningRate0.01': generate_gradient_boosting_trees_lr01,
-        'GradientBoostingTree-LearningRate0.05': generate_gradient_boosting_trees_lr05,
-        'GradientBoostingTree-LearningRate0.1': generate_gradient_boosting_trees_lr1,
-        'GradientBoostingTree-LearningRate0.5': generate_gradient_boosting_trees_lr5,
-        'MLPClassifier-LearningRate0.001': generate_sk_mlp_classifier_lr001,
-        'MLPClassifier-LearningRate0.01': generate_sk_mlp_classifier_lr01,
-        'MLPClassifier-LearningRate0.1': generate_sk_mlp_classifier_lr1
+    algo_family_generator_dict = {
+        'DecisionTree':
+            {'DT-MostPruning': generate_decision_tree_most_pruning,
+            'DT-MiddlePruning': generate_decision_tree_middle_pruning,
+            'DT-LeastPruning': generate_decision_tree_least_pruning},
+        'SVM-RBF':
+            {'SVM-RBF-C1': generate_svm_rbf_c1,
+            'SVM-RBF-C5': generate_svm_rbf_c5,
+            'SVM-RBF-C100': generate_svm_rbf_c100},
+        'SVM-Poly':
+            {'SVM-Poly-C5-D2': generate_svm_poly_c5_degree2,
+            'SVM-Poly-C5-D3': generate_svm_poly_c5_degree3,
+            'SVM-Poly-C5-D4': generate_svm_poly_c5_degree4},
+        'KNN':
+            {'KNN-K10-P1': generate_knn_10_p1,
+            'KNN-K10-P2': generate_knn_10_p2,
+            'KNN-K5-P2': generate_knn_5_p2},
+        'GradientBoostingTree':
+            {'GBT-LR.01': generate_gradient_boosting_tree_lr01,
+            'GBT-LR.05': generate_gradient_boosting_tree_lr05,
+            'GBT-LR.1': generate_gradient_boosting_tree_lr1},
+        'NeuralNetwork':
+            {'MLP-LR.001': generate_sk_mlp_classifier_lr001,
+            'MLP-LR.01': generate_sk_mlp_classifier_lr01,
+            'MLP-LR.1': generate_sk_mlp_classifier_lr1}
     }
 
     #load dataset
@@ -280,34 +254,50 @@ def main():
         except:
             raise Exception('failed to load specified model, aborting')
 
-    for algo_key, algo_generator in algo_generator_dict.items():
-        print('\nModel Name: {}'.format(algo_key))
-        ## TODO: consider cleaning this up to look in a directory then pull all models in that directory, iterating through and evaluating each one
-        if PRETRAINED_MODELS_DIR:
-            try:
-                algo = pickle_load_model(models_directory=PRETRAINED_MODELS_DIR, model_type=algo_key)
-                print('loaded algo: {} - {}'.format(algo.model_type, algo.id))
-            except:
-                try:
-                    print('\ntraining: {} -- loading the specified algorithm failed'.format(algo_key))
-                    algo = algo_generator_dict[algo_key](id=algo_batch_id)
-                    algo = train_model(algo, train_dataset, n_folds=N_CV, n_chunks=N_LC_CHUNKS)
-                except:
-                    raise Exception('failed to load or train algorithm, aborting')
+    detail_df = pd.DataFrame(columns=['Model Name', 'Precision', 'Recall', 'F1', 'ROC-AUC', 'Accuracy', 'Balanced Accuracy', 'Training Time'])
+    for algo_family, algo_generator_dict in algo_family_generator_dict.items():
+        print('\n\nalgorithm family:', algo_family)
+        print('algorithms to test:', [x for x in algo_generator_dict.keys()])
+        algo_list = []
         
-        else:
-
+        for algo_key, algo_generator in algo_generator_dict.items():
+            print('\nmodel name: {}'.format(algo_key))
             algo = algo_generator_dict[algo_key](id=algo_batch_id)
             algo = train_model(algo, train_dataset, n_folds=N_CV, n_chunks=N_LC_CHUNKS)
-            pickle_save_model(algo, model_folder=('models/'+str(algo.id)))
+            if SAVE_MODELS:
+                pickle_save_model(algo, model_folder='output/'+str(algo.id)+'/models')
 
-        try:        
-            evaluate_model(algo, test_dataset, classes_list=label_encoder.classes_)
-        except:
-            raise Exception('unable to evaluate model')
+            try:        
+                evaluate_model(algo, test_dataset, classes_list=label_encoder.classes_)
+            except:
+                raise Exception('unable to evaluate model')
+
+            algo_list.append(algo)
+            #store algo details in dataframe
+            detail_df = detail_df.append({'Model Name': algo.model_type, 
+                                        'Precision': algo.precision, 
+                                        'Recall':algo.recall, 
+                                        'F1':algo.f1, 
+                                        'ROC-AUC':algo.roc_auc, 
+                                        'Accuracy':algo.accuracy, 
+                                        'Balanced Accuracy':algo.balanced_accuracy, 
+                                        'Training Time':algo.training_time}, ignore_index=True)
+
+        if PLOT_ACTION:
+            plot_model_family_learning_curves(algo_family, 
+                                                algo_list, 
+                                                figure_action=PLOT_ACTION, 
+                                                figure_path='output/'+str(algo_batch_id)+'/figures/lc',
+                                                file_name=(str(algo_family)))
+            plot_confusion_matrix(algo_family, 
+                                    algo_list, 
+                                    label_encoder.classes_, 
+                                    figure_action=PLOT_ACTION, 
+                                    figure_path='output/'+str(algo_batch_id)+'/figures/cm',
+                                    file_name=(str(algo_family)))
+
+    detail_df.to_csv('output/'+str(algo_batch_id)+'/models_summary_'+str(USE_DATASET)+'.csv', sep=',', encoding='utf-8', index=False)
     
 if __name__ == '__main__': 
-    ## general params:
-    
     main()
     

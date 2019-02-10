@@ -5,41 +5,43 @@ if platform.mac_ver()[0] != '':
     mpl.use('TkAgg')
 
 import matplotlib.pyplot as plt
-from sklearn.model_selection import learning_curve
 import numpy as np
 import os
 import itertools
 
 
-def plot_confusion_matrix(cm, algo, classes, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues, figure_action='show', figure_path='figures/cm', file_name=None):
+def plot_confusion_matrix(algo_family, algo_list, classes, cmap=plt.cm.Blues, figure_action='show', figure_path='figures/cm', file_name=None):
     '''
-    heavily adapted from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
+    adapted from https://scikit-learn.org/stable/auto_examples/model_selection/plot_confusion_matrix.html#sphx-glr-auto-examples-model-selection-plot-confusion-matrix-py
     '''
-    
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print('Normalized confusion matrix')
-    else:
-        print('Confusion matrix, without normalization')
-
-    print(cm)
-
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
+    f, axarr = plt.subplots(2, len(algo_list))
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    plt.setp(axarr, xticks=tick_marks, xticklabels=classes, yticks=tick_marks, yticklabels=classes)
+    for i in range(len(algo_list)):
+        # i = column of subplot
+        algo = algo_list[i]
+        axarr[0, i].imshow(algo.get_cm(), interpolation='nearest', cmap=cmap)
+        axarr[0, i].set_title(str(algo.model_type))
+        
+        thresh = algo.get_cm().max() / 2.
+        for j, k in itertools.product(range(algo.get_cm().shape[0]), range(algo.get_cm().shape[1])):
+            axarr[0, i].text(k, j, format(algo.get_cm()[j, k], 'd'),
+                            horizontalalignment="center",
+                            color="white" if algo.get_cm()[j, k] > thresh else "black")
 
-    fmt = '.2f' if normalize else 'd'
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
-                 horizontalalignment='center',
-                 color='white' if cm[i, j] > thresh else 'black')
 
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+        axarr[1, i].imshow(algo.get_normalized_cm(), interpolation='nearest', cmap=cmap)
+        
+        thresh = algo.get_normalized_cm().max() / 2.
+        for j, k in itertools.product(range(algo.get_normalized_cm().shape[0]), range(algo.get_normalized_cm().shape[1])):
+            axarr[1, i].text(k, j, format(algo.get_normalized_cm()[j, k], '.2f'),
+                            horizontalalignment="center",
+                            color="white" if algo.get_normalized_cm()[j, k] > thresh else "black")
+
+    for ax in axarr.flat:
+        ax.set(xlabel='Predicted label', ylabel='True label')
+    for ax in axarr.flat:
+        ax.label_outer()
     plt.tight_layout()
     if figure_action == 'show':
         plt.show()
@@ -49,44 +51,42 @@ def plot_confusion_matrix(cm, algo, classes, normalize=False, title='Confusion m
         if file_name:
             plt.savefig(figure_path+'/'+file_name+'.png')
         else:
-            plt.savefig(figure_path+'/'+str(algo.model_type)+'_'+str(algo.id)+'.png')
+            plt.savefig(figure_path+'/'+str(algo.model_family)+'.png')
     plt.close()
     return None
 
-
-
-def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Learning Curve', figure_action='show', figure_path='figures/lc', file_name=None):
-    '''
-    heavily adapted from https://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
-    '''
-    plt.figure()
-    plt.title(title)
+def plot_model_family_learning_curves(model_family, algo_list, figure_action='show', figure_path='figures/lc', file_name=None):
+    line_type_dict = {
+        'train':'-',
+        'validation':'-.'
+    }
+    color_list = ['b','g','r','c','m','y','k','w', 'orange']
     
+    plt.figure()
+    plt.title('Learning Curves - ' + model_family)
     plt.ylabel('Score')
+    if model_family == 'NeuralNetwork':
+        plt.xlabel('Epochs')
+    else:
+        plt.xlabel('Training Samples')
 
-    if algo.nn == False: #not a neural network
-        train_scores_mean = np.mean(train_scores, axis=1)
-        train_scores_std = np.std(train_scores, axis=1)
-        val_scores_mean = np.mean(val_scores, axis=1)
-        val_scores_std = np.std(val_scores, axis=1)
-        plt.xlabel('Epochs')
-        plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
-                     train_scores_mean + train_scores_std, alpha=0.1, color='orange')
-        plt.fill_between(train_sizes, val_scores_mean - val_scores_std,
-                     val_scores_mean + val_scores_std, alpha=0.1, color='blue')
-        plt.plot(train_sizes, train_scores_mean, '-', color='orange',
-             label='Training score')
-        plt.plot(train_sizes, val_scores_mean, '-', color='blue',
-                label='Cross-validation score')
-    elif algo.nn == True: #not a neural network
-        plt.xlabel('Epochs')
-        plt.plot(train_sizes, train_scores, '-', color='orange',
-             label='Training loss')
-        plt.plot(train_sizes, val_scores, '-', color='blue',
-                label='Validation score')
+    for i in range(len(algo_list)):
+        algo = algo_list[i]
+        line_color = color_list[i]
+
+        plt.plot(algo.train_sizes, 
+                algo.get_train_scores(), 
+                line_type_dict['train'], 
+                color=line_color,
+                label=(algo.model_type+' Training Score'))
+        plt.plot(algo.train_sizes, 
+                algo.get_validation_scores(), 
+                line_type_dict['validation'], 
+                color=line_color,
+                label=(algo.model_type+' Validation Score'))
+    plt.legend(loc='best')
     plt.grid()
 
-    plt.legend(loc='best')
     if figure_action == 'show':
         plt.show()
     elif figure_action == 'save':
@@ -95,7 +95,6 @@ def plot_learning_curve(algo, train_sizes, train_scores, val_scores, title='Lear
         if file_name:
             plt.savefig(figure_path+'/'+file_name+'.png')
         else:
-            plt.savefig(figure_path+'/'+str(algo.model_type)+'.png')
+            plt.savefig(figure_path+'/'+str(algo.model_family)+'.png')
     plt.close()
     return None
-
